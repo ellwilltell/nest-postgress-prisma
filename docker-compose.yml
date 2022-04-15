@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  api:
+    container_name: bee.api.dev
+    image: bee.api.dev:1.0.0
+    build:
+      context: .
+      target: development
+      dockerfile: ./Dockerfile
+    command: [sh, -c, "npm run migrate-db init && npm run start:dev"]
+    ports:
+      - "3000:3000"
+      - "4000:4000"
+    networks:
+      - bee-network
+    env_file:
+      - .env
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:alpine3.13
+    ports:
+      - 5432:5432
+    restart: always
+    networks:
+      - bee-network
+    environment:
+      - POSTGRES_USER=bee.admin
+      - POSTGRES_PASSWORD=bee.admin
+      - POSTGRES_DB=beez
+      - PG_DATA=/var/lib/postgresql/data
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+
+networks:
+  bee-network:
+
+volumes:
+  pgdata:

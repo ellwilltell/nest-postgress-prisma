@@ -1,0 +1,68 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id            Int        @id @default(autoincrement())
+  title         String     @default("")
+  slug          String     @default("")
+  isSubCategory Boolean    @default(false)
+  description   String     @default("")
+  parentId      Int?
+  parent        Category?  @relation("Category", fields: [parentId], references: [id])
+  subCategory   Category[] @relation("Category")
+  products      Product[]  @relation("Product")
+  discountRefId Int?       
+  discount      Discount?  @relation("CategoriesWithDiscount", fields: [discountRefId], references: [id])
+}
+
+model User {
+  id           Int    @id @default(autoincrement())
+  emailAddress String @unique
+}
+
+model Product {
+  id            Int       @id @default(autoincrement())
+  title         String
+  content       String?
+  categoryId    Int
+  price         BigInt
+  category      Category  @relation("Product", fields: [categoryId], references: [id])
+  discountRefId Int?
+  discount      Discount? @relation("ProductsWithDiscount", fields: [discountRefId], references: [id])
+  Invoice       Invoice[]
+}
+
+// we could create a "time limited discount" or even "onetime discount" for specific cases  :)
+model Discount {
+  id         Int          @id @default(autoincrement())
+  type       DiscountType @default(ON_CATEGORY)
+  value      BigInt       @default(0)
+  products   Product[]    @relation("ProductsWithDiscount")
+  categories Category[]   @relation("CategoriesWithDiscount")
+  isActive   Boolean      @default(true)
+  Invoice    Invoice[]
+}
+
+// for simplicity, every invoice can contain only a single product.
+model Invoice {
+  id            Int       @id @default(autoincrement())
+  productId     Int
+  totalValue    BigInt    @default(0)
+  discountRefId Int?
+  product       Product   @relation(fields: [productId], references: [id])
+  discount      Discount? @relation(fields: [discountRefId], references: [id])
+}
+
+enum DiscountType {
+  ON_CATEGORY
+  ON_PRODUCT
+}
